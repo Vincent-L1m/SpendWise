@@ -1,0 +1,18 @@
+#Register
+http://localhost:5000/api/auth/register
+
+{
+    "fullname": "Vincent Lim",
+    "username": "vincent",
+    "email": "vincent@gmail.com",
+    "phone": "08123456789",
+    "password": "Password123!"
+}
+
+# Login
+http://localhost:5000/api/auth/login
+
+{
+    "email": "vincent@gmail.com",
+    "password": "Password123!"
+}
