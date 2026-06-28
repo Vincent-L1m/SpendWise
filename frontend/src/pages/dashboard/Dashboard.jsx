@@ -32,14 +32,13 @@ const ChartTooltip = ({active,payload,label}) => {
   );
 };
 
-/* ── Big Calendar with daily PnL ──────────────────────────────── */
+/* ── Compact Calendar ─────────────────────────────────────────── */
 function BigCalendar({ transactions, balHidden }) {
   const now = new Date();
   const [viewYear,  setViewYear]  = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
   const [selDay,    setSelDay]    = useState(null);
 
-  // Build daily aggregates: { "2026-06-20": { income, expense } }
   const daily = {};
   (transactions || []).forEach(t => {
     const d = t.transaction_date?.slice(0,10);
@@ -63,60 +62,29 @@ function BigCalendar({ transactions, balHidden }) {
   const nextMonth = () => { setSelDay(null); if(viewMonth===11){setViewYear(y=>y+1);setViewMonth(0);}else setViewMonth(m=>m+1); };
   const isToday = (d,cur) => cur && d===now.getDate() && viewMonth===now.getMonth() && viewYear===now.getFullYear();
 
-  // Selected day detail
   const selDateStr = selDay ? `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(selDay).padStart(2,"0")}` : null;
   const selInfo = selDateStr ? daily[selDateStr] : null;
   const selPnL  = selInfo ? selInfo.income - selInfo.expense : 0;
 
-  // Month total PnL
-  const monthEntries = Object.entries(daily).filter(([key]) => key.startsWith(`${viewYear}-${String(viewMonth+1).padStart(2,"0")}`));
-  const monthIncome  = monthEntries.reduce((a,[,v])=>a+v.income, 0);
-  const monthExpense = monthEntries.reduce((a,[,v])=>a+v.expense,0);
-  const monthPnL     = monthIncome - monthExpense;
-
   return (
-    <div className="sw-card" style={{ padding:"22px" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"18px", flexWrap:"wrap", gap:"12px" }}>
-        <div>
-          <h3 style={{ fontFamily:"inherit", fontSize:"16px", fontWeight:"700", color:"var(--text)", marginBottom:"3px" }}>Kalender Keuangan</h3>
-          <p style={{ fontSize:"12px", color:"var(--text-3)" }}>Klik tanggal untuk lihat rincian harian</p>
-        </div>
-        {/* Month PnL summary */}
-        <div style={{ display:"flex", gap:"14px", flexWrap:"wrap" }}>
-          <div style={{ textAlign:"right" }}>
-            <p style={{ fontSize:"10px", color:"var(--text-3)" }}>Pemasukan Bulan Ini</p>
-            <p className={balHidden?"balance-hidden":""} style={{ fontSize:"14px", fontWeight:"700", color:"var(--green)", fontFamily:"inherit" }}>{fmt(monthIncome)}</p>
-          </div>
-          <div style={{ textAlign:"right" }}>
-            <p style={{ fontSize:"10px", color:"var(--text-3)" }}>Pengeluaran Bulan Ini</p>
-            <p className={balHidden?"balance-hidden":""} style={{ fontSize:"14px", fontWeight:"700", color:"var(--red)", fontFamily:"inherit" }}>{fmt(monthExpense)}</p>
-          </div>
-          <div style={{ textAlign:"right" }}>
-            <p style={{ fontSize:"10px", color:"var(--text-3)" }}>Net P&L</p>
-            <p className={balHidden?"balance-hidden":""} style={{ fontSize:"14px", fontWeight:"700", color: monthPnL>=0?"var(--brand)":"var(--red)", fontFamily:"inherit" }}>
-              {monthPnL>=0?"+":""}{fmt(monthPnL)}
-            </p>
-          </div>
+    <div className="sw-card" style={{ padding:"16px" }}>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"12px" }}>
+        <h3 style={{ fontFamily:"inherit", fontSize:"14px", fontWeight:"700", color:"var(--text)" }}>Kalender Keuangan</h3>
+        <div style={{ display:"flex", alignItems:"center", gap:"6px" }}>
+          <button onClick={prevMonth} style={{ background:"var(--bg-subtle)", border:"1px solid var(--border)", borderRadius:"var(--radius)", color:"var(--text-2)", cursor:"pointer", width:"26px", height:"26px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px" }}>‹</button>
+          <span style={{ fontSize:"12px", fontWeight:"600", color:"var(--text)", minWidth:"110px", textAlign:"center" }}>{MONTHS_FULL[viewMonth]} {viewYear}</span>
+          <button onClick={nextMonth} style={{ background:"var(--bg-subtle)", border:"1px solid var(--border)", borderRadius:"var(--radius)", color:"var(--text-2)", cursor:"pointer", width:"26px", height:"26px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"14px" }}>›</button>
         </div>
       </div>
 
-      <div className="cal-grid" style={{ display:"grid", gridTemplateColumns: selDay ? "1fr 260px" : "1fr", gap:"20px", alignItems:"flex-start" }}>
+      <div style={{ display:"flex", gap:"16px", alignItems:"flex-start", flexWrap:"wrap" }}>
         {/* Calendar grid */}
-        <div>
-          {/* Month nav */}
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"14px" }}>
-            <button onClick={prevMonth} style={{ background:"var(--bg-subtle)", border:"1px solid var(--border)", borderRadius:"var(--radius)", color:"var(--text-2)", cursor:"pointer", width:"32px", height:"32px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px" }}>‹</button>
-            <span style={{ fontFamily:"inherit", fontSize:"15px", fontWeight:"700", color:"var(--text)" }}>{MONTHS_FULL[viewMonth]} {viewYear}</span>
-            <button onClick={nextMonth} style={{ background:"var(--bg-subtle)", border:"1px solid var(--border)", borderRadius:"var(--radius)", color:"var(--text-2)", cursor:"pointer", width:"32px", height:"32px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"16px" }}>›</button>
+        <div style={{ flex:"1", minWidth:"220px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"2px", marginBottom:"4px" }}>
+            {DAYS_LABEL.map(d => <div key={d} style={{ textAlign:"center", fontSize:"10px", fontWeight:"600", color:"var(--text-3)" }}>{d}</div>)}
           </div>
-
-          {/* Day labels */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"4px", marginBottom:"6px" }}>
-            {DAYS_LABEL.map(d => <div key={d} style={{ textAlign:"center", fontSize:"11px", fontWeight:"600", color:"var(--text-3)" }}>{d}</div>)}
-          </div>
-
-          {/* Day cells */}
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"4px" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(7,1fr)", gap:"2px" }}>
             {cells.map((cell, i) => {
               const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,"0")}-${String(cell.d).padStart(2,"0")}`;
               const info = cell.cur ? daily[dateStr] : null;
@@ -131,70 +99,61 @@ function BigCalendar({ transactions, balHidden }) {
                   style={{
                     aspectRatio:"1", borderRadius:"var(--radius)",
                     display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-                    gap:"2px", border: selected ? "2px solid var(--brand)" : today ? "1px solid var(--brand)" : "1px solid transparent",
+                    gap:"1px", border: selected ? "2px solid var(--brand)" : today ? "1px solid var(--brand)" : "1px solid transparent",
                     background: selected ? "var(--brand-light)" : today ? "var(--brand-light)" : cell.cur ? "var(--bg-white)" : "transparent",
                     color: !cell.cur ? "var(--text-3)" : "var(--text)",
-                    opacity: !cell.cur ? 0.35 : 1,
+                    opacity: !cell.cur ? 0.3 : 1,
                     cursor: cell.cur ? "pointer" : "default",
-                    fontSize:"13px", fontWeight: today ? "700" : "500",
-                    padding:"4px",
+                    fontSize:"11px", fontWeight: today ? "700" : "500",
+                    padding:"2px",
                   }}>
                   <span>{cell.d}</span>
                   {info && (
-                    <span style={{
-                      fontSize:"8px", fontWeight:"700",
-                      color: pnl >= 0 ? "var(--green)" : "var(--red)",
-                      lineHeight:1,
-                    }}>
-                      {pnl >= 0 ? "+" : ""}{fmtC(pnl)}
+                    <span style={{ fontSize:"7px", fontWeight:"700", color: pnl >= 0 ? "var(--green)" : "var(--red)", lineHeight:1 }}>
+                      {pnl >= 0 ? "●" : "●"}
                     </span>
                   )}
                 </button>
               );
             })}
           </div>
-
-          {/* Legend */}
-          <div style={{ display:"flex", gap:"16px", marginTop:"14px", justifyContent:"center" }}>
+          <div style={{ display:"flex", gap:"12px", marginTop:"8px", justifyContent:"center" }}>
             {[["var(--green)","Surplus"],["var(--red)","Defisit"]].map(([c,l]) => (
-              <div key={l} style={{ display:"flex", alignItems:"center", gap:"5px" }}>
-                <div style={{ width:8, height:8, borderRadius:"50%", background:c }}/>
-                <span style={{ fontSize:"11px", color:"var(--text-3)" }}>{l}</span>
+              <div key={l} style={{ display:"flex", alignItems:"center", gap:"4px" }}>
+                <div style={{ width:6, height:6, borderRadius:"50%", background:c }}/>
+                <span style={{ fontSize:"10px", color:"var(--text-3)" }}>{l}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Selected day detail panel */}
+        {/* Selected day detail */}
         {selDay && (
-          <div className="cal-detail-panel" style={{ background:"var(--bg-white)", border:"1px solid var(--border)", borderRadius:"var(--radius-lg)", padding:"16px", animation:"fadeSlideIn 0.2s ease" }}>
-            <p style={{ fontSize:"11px", fontWeight:"600", color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.6px", marginBottom:"10px" }}>
-              {selDay} {MONTHS_FULL[viewMonth]} {viewYear}
+          <div style={{ flex:"0 0 180px", background:"var(--bg-subtle)", border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:"12px", animation:"fadeSlideIn 0.2s ease" }}>
+            <p style={{ fontSize:"10px", fontWeight:"600", color:"var(--text-3)", textTransform:"uppercase", letterSpacing:"0.6px", marginBottom:"8px" }}>
+              {selDay} {MONTHS_SHORT[viewMonth]}
             </p>
             {selInfo ? (
               <>
-                <div style={{ marginBottom:"12px" }}>
-                  <p style={{ fontSize:"11px", color:"var(--text-3)", marginBottom:"3px" }}>Pemasukan</p>
-                  <p className={balHidden?"balance-hidden":""} style={{ fontSize:"16px", fontWeight:"700", color:"var(--green)", fontFamily:"inherit" }}>{fmt(selInfo.income)}</p>
+                <div style={{ marginBottom:"8px" }}>
+                  <p style={{ fontSize:"10px", color:"var(--text-3)", marginBottom:"2px" }}>Pemasukan</p>
+                  <p className={balHidden?"balance-hidden":""} style={{ fontSize:"13px", fontWeight:"700", color:"var(--green)", fontFamily:"inherit" }}>{fmt(selInfo.income)}</p>
                 </div>
-                <div style={{ marginBottom:"12px" }}>
-                  <p style={{ fontSize:"11px", color:"var(--text-3)", marginBottom:"3px" }}>Pengeluaran</p>
-                  <p className={balHidden?"balance-hidden":""} style={{ fontSize:"16px", fontWeight:"700", color:"var(--red)", fontFamily:"inherit" }}>{fmt(selInfo.expense)}</p>
+                <div style={{ marginBottom:"8px" }}>
+                  <p style={{ fontSize:"10px", color:"var(--text-3)", marginBottom:"2px" }}>Pengeluaran</p>
+                  <p className={balHidden?"balance-hidden":""} style={{ fontSize:"13px", fontWeight:"700", color:"var(--red)", fontFamily:"inherit" }}>{fmt(selInfo.expense)}</p>
                 </div>
-                <div style={{ paddingTop:"12px", borderTop:"1px solid var(--border)" }}>
-                  <p style={{ fontSize:"11px", color:"var(--text-3)", marginBottom:"3px" }}>Net P&L Hari Ini</p>
-                  <p className={balHidden?"balance-hidden":""} style={{ fontSize:"18px", fontWeight:"700", color: selPnL>=0?"var(--brand)":"var(--red)", fontFamily:"inherit" }}>
+                <div style={{ paddingTop:"8px", borderTop:"1px solid var(--border)" }}>
+                  <p style={{ fontSize:"10px", color:"var(--text-3)", marginBottom:"2px" }}>Net P&L</p>
+                  <p className={balHidden?"balance-hidden":""} style={{ fontSize:"14px", fontWeight:"700", color: selPnL>=0?"var(--brand)":"var(--red)", fontFamily:"inherit" }}>
                     {selPnL>=0?"+":""}{fmt(selPnL)}
                   </p>
-                  <span style={{ display:"inline-block", marginTop:"6px", padding:"3px 10px", borderRadius:"9999px", fontSize:"11px", fontWeight:"600", background: selPnL>=0 ? "var(--green-bg)" : "var(--red-bg)", color: selPnL>=0 ? "var(--green)" : "var(--red)" }}>
-                    {selPnL>=0 ? "📈 Surplus" : "📉 Defisit"}
-                  </span>
                 </div>
               </>
             ) : (
-              <div style={{ textAlign:"center", padding:"20px 0" }}>
-                <div style={{ fontSize:"28px", marginBottom:"8px" }}>📭</div>
-                <p style={{ fontSize:"12px", color:"var(--text-3)" }}>Tidak ada transaksi di tanggal ini</p>
+              <div style={{ textAlign:"center", padding:"12px 0" }}>
+                <div style={{ fontSize:"22px", marginBottom:"6px" }}>📭</div>
+                <p style={{ fontSize:"11px", color:"var(--text-3)" }}>Tidak ada transaksi</p>
               </div>
             )}
           </div>
@@ -211,6 +170,7 @@ export default function Dashboard() {
   const [summary,    setSummary]    = useState(null);
   const [chartData,  setChartData]  = useState(null);
   const [chartRange, setChartRange] = useState("monthly");
+  const [chartType,  setChartType]  = useState("bar"); // "bar" | "line"
   const [showModal,  setShowModal]  = useState(false);
   const [loading,    setLoading]    = useState(true);
   const [chartLoad,  setChartLoad]  = useState(false);
@@ -233,19 +193,13 @@ export default function Dashboard() {
     window.addEventListener("sw:reload", loadSummary);
     return () => window.removeEventListener("sw:reload", loadSummary);
   }, [loadSummary]);
-
   useEffect(() => {
     const openModal = () => setShowModal(true);
     window.addEventListener("open-add-trx", openModal);
     return () => window.removeEventListener("open-add-trx", openModal);
   }, []);
-
   useEffect(() => {
-    const measure = () => {
-      if (chartRef.current) {
-        setChartWidth(chartRef.current.offsetWidth || 700);
-      }
-    };
+    const measure = () => { if (chartRef.current) setChartWidth(chartRef.current.offsetWidth || 700); };
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
@@ -331,77 +285,61 @@ export default function Dashboard() {
                 <h3 style={{fontFamily:"var(--font-display)",fontSize:"15px",fontWeight:"700",color:"var(--text-primary)",marginBottom:"2px"}}>Cash Flow</h3>
                 <p style={{fontSize:"12px",color:"var(--text-muted)"}}>{chartRange==="monthly"?`Sepanjang ${now.getFullYear()}`:"10 minggu terakhir"}</p>
               </div>
-              <div style={{display:"flex",background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:"var(--radius-md)",padding:"3px",gap:"2px"}}>
-                {[["monthly","Bulanan"],["weekly","Mingguan"]].map(([v,l])=>(
-                  <button key={v} onClick={()=>setChartRange(v)}
-                    style={{padding:"6px 14px",border:"none",borderRadius:"var(--radius-sm)",background:chartRange===v?"var(--bg-elevated)":"transparent",color:chartRange===v?"var(--text-primary)":"var(--text-muted)",fontSize:"12px",fontWeight:chartRange===v?"600":"400",cursor:"pointer",transition:"all var(--transition)"}}>
-                    {l}
+              {/* Controls: range + chart type */}
+              <div style={{display:"flex",gap:"6px",flexWrap:"wrap"}}>
+                {/* Range toggle */}
+                <div style={{display:"flex",background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:"var(--radius-md)",padding:"3px",gap:"2px"}}>
+                  {[["monthly","Bulanan"],["weekly","Mingguan"]].map(([v,l])=>(
+                    <button key={v} onClick={()=>setChartRange(v)}
+                      style={{padding:"5px 12px",border:"none",borderRadius:"var(--radius-sm)",background:chartRange===v?"var(--bg-elevated)":"transparent",color:chartRange===v?"var(--text-primary)":"var(--text-muted)",fontSize:"12px",fontWeight:chartRange===v?"600":"400",cursor:"pointer",transition:"all var(--transition)"}}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                {/* Chart type toggle */}
+                <div style={{display:"flex",background:"var(--bg-surface)",border:"1px solid var(--border)",borderRadius:"var(--radius-md)",padding:"3px",gap:"2px"}}>
+                  <button onClick={()=>setChartType("bar")} title="Bar Chart"
+                    style={{padding:"5px 10px",border:"none",borderRadius:"var(--radius-sm)",background:chartType==="bar"?"var(--bg-elevated)":"transparent",color:chartType==="bar"?"var(--text-primary)":"var(--text-muted)",cursor:"pointer",transition:"all var(--transition)",display:"flex",alignItems:"center"}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="2" y="12" width="4" height="10" rx="1" fill="currentColor"/><rect x="10" y="6" width="4" height="16" rx="1" fill="currentColor"/><rect x="18" y="3" width="4" height="19" rx="1" fill="currentColor"/></svg>
                   </button>
-                ))}
+                  <button onClick={()=>setChartType("line")} title="Line Chart"
+                    style={{padding:"5px 10px",border:"none",borderRadius:"var(--radius-sm)",background:chartType==="line"?"var(--bg-elevated)":"transparent",color:chartType==="line"?"var(--text-primary)":"var(--text-muted)",cursor:"pointer",transition:"all var(--transition)",display:"flex",alignItems:"center"}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><polyline points="2,18 8,10 14,14 20,4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                </div>
               </div>
             </div>
+
             {chartLoad ? (
               <div style={{height:240,display:"flex",alignItems:"center",justifyContent:"center"}}><div className="sw-spinner"/></div>
             ) : chartPoints.length===0 ? (
               <div style={{height:240,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-muted)",fontSize:"13px"}}>Belum ada data transaksi</div>
             ) : (
-              <div ref={chartRef} style={{height:240, width:"100%"}}>
-                <BarChart width={Math.max(chartWidth - 40, 300)} height={240} data={chartPoints} margin={{top:4,right:4,left:0,bottom:0}} barGap={3}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false}/>
-                  <XAxis dataKey="name" tick={{fill:"#94a3b8",fontSize:11}} axisLine={false} tickLine={false}/>
-                  <YAxis tickFormatter={fmtC} tick={{fill:"#94a3b8",fontSize:10}} axisLine={false} tickLine={false} width={62}/>
-                  <Tooltip content={<ChartTooltip/>}/>
-                  <Legend formatter={v=>v==="income"?"Pemasukan":"Pengeluaran"} wrapperStyle={{fontSize:"12px",color:"#94a3b8"}}/>
-                  <Bar dataKey="income"  name="income"  fill="#00e5a0" radius={[4,4,0,0]}/>
-                  <Bar dataKey="expense" name="expense" fill="#ff4d6d" radius={[4,4,0,0]}/>
-                </BarChart>
+              <div ref={chartRef} style={{height:240,width:"100%"}}>
+                {chartType === "bar" ? (
+                  <BarChart width={Math.max(chartWidth - 40, 300)} height={240} data={chartPoints} margin={{top:4,right:4,left:0,bottom:0}} barGap={3}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false}/>
+                    <XAxis dataKey="name" tick={{fill:"#94a3b8",fontSize:11}} axisLine={false} tickLine={false}/>
+                    <YAxis tickFormatter={fmtC} tick={{fill:"#94a3b8",fontSize:10}} axisLine={false} tickLine={false} width={62}/>
+                    <Tooltip content={<ChartTooltip/>}/>
+                    <Legend formatter={v=>v==="income"?"Pemasukan":"Pengeluaran"} wrapperStyle={{fontSize:"12px",color:"#94a3b8"}}/>
+                    <Bar dataKey="income"  name="income"  fill="#00e5a0" radius={[4,4,0,0]}/>
+                    <Bar dataKey="expense" name="expense" fill="#ff4d6d" radius={[4,4,0,0]}/>
+                  </BarChart>
+                ) : (
+                  <LineChart width={Math.max(chartWidth - 40, 300)} height={240} data={chartPoints} margin={{top:4,right:4,left:0,bottom:0}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false}/>
+                    <XAxis dataKey="name" tick={{fill:"#94a3b8",fontSize:11}} axisLine={false} tickLine={false}/>
+                    <YAxis tickFormatter={fmtC} tick={{fill:"#94a3b8",fontSize:10}} axisLine={false} tickLine={false} width={62}/>
+                    <Tooltip content={<ChartTooltip/>}/>
+                    <Legend formatter={v=>v==="income"?"Pemasukan":"Pengeluaran"} wrapperStyle={{fontSize:"12px",color:"#94a3b8"}}/>
+                    <Line type="monotone" dataKey="income"  name="income"  stroke="#00e5a0" strokeWidth={2} dot={{fill:"#00e5a0",r:3}} activeDot={{r:5}}/>
+                    <Line type="monotone" dataKey="expense" name="expense" stroke="#ff4d6d" strokeWidth={2} dot={{fill:"#ff4d6d",r:3}} activeDot={{r:5}}/>
+                  </LineChart>
+                )}
               </div>
             )}
           </div>
-
-          {/* ── Spending trend line chart ────────────────── */}
-          {chartPoints.some(p=>p.income>0||p.expense>0) && (
-            <div className="sw-card" style={{marginBottom:"20px"}}>
-              <div style={{marginBottom:"14px"}}>
-                <h3 style={{fontFamily:"var(--font-display)",fontSize:"15px",fontWeight:"700",color:"var(--text-primary)",marginBottom:"2px"}}>Tren Pengeluaran</h3>
-                <p style={{fontSize:"12px",color:"var(--text-muted)"}}>Pola pemasukan & pengeluaran dari waktu ke waktu</p>
-              </div>
-              <div style={{height:180, width:"100%"}}>
-                <LineChart width={Math.max(chartWidth - 40, 300)} height={180} data={chartPoints} margin={{top:4,right:4,left:0,bottom:0}}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false}/>
-                  <XAxis dataKey="name" tick={{fill:"#94a3b8",fontSize:10}} axisLine={false} tickLine={false}/>
-                  <YAxis tickFormatter={fmtC} tick={{fill:"#94a3b8",fontSize:9}} axisLine={false} tickLine={false} width={58}/>
-                  <Tooltip content={<ChartTooltip/>}/>
-                  <Legend formatter={v=>v==="income"?"Pemasukan":"Pengeluaran"} wrapperStyle={{fontSize:"11px",color:"#94a3b8"}}/>
-                  <Line type="monotone" dataKey="income"  name="income"  stroke="#00e5a0" strokeWidth={2} dot={{fill:"#00e5a0",r:3}} activeDot={{r:5}}/>
-                  <Line type="monotone" dataKey="expense" name="expense" stroke="#ff4d6d" strokeWidth={2} dot={{fill:"#ff4d6d",r:3}} activeDot={{r:5}}/>
-                </LineChart>
-              </div>
-            </div>
-          )}
-
-          {/* ── Tren Pengeluaran ─────────────────────────── */}
-          {chartPoints.some(p=>p.income>0||p.expense>0) && (
-            <div className="sw-card" style={{marginBottom:"20px"}}>
-              <div style={{marginBottom:"14px"}}>
-                <h3 style={{fontSize:"15px",fontWeight:"700",color:"var(--text)",marginBottom:"2px"}}>Tren Pengeluaran</h3>
-                <p style={{fontSize:"12px",color:"var(--text-3)"}}>Pola pemasukan & pengeluaran dari waktu ke waktu</p>
-              </div>
-              <div style={{height:180}}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartPoints} margin={{top:4,right:4,left:0,bottom:0}}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" vertical={false}/>
-                    <XAxis dataKey="name" tick={{fill:"#667085",fontSize:10}} axisLine={false} tickLine={false}/>
-                    <YAxis tickFormatter={fmtC} tick={{fill:"#667085",fontSize:9}} axisLine={false} tickLine={false} width={58}/>
-                    <Tooltip content={<ChartTooltip/>}/>
-                    <Legend formatter={v=>v==="income"?"Pemasukan":"Pengeluaran"} wrapperStyle={{fontSize:"11px",color:"#667085"}}/>
-                    <Line type="monotone" dataKey="income"  name="income"  stroke="#12A05C" strokeWidth={2} dot={{fill:"#12A05C",r:3}} activeDot={{r:5}}/>
-                    <Line type="monotone" dataKey="expense" name="expense" stroke="#E04040" strokeWidth={2} dot={{fill:"#E04040",r:3}} activeDot={{r:5}}/>
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
 
           {/* ── Wallets ──────────────────────────────────── */}
           {summary?.wallets?.length>0 && (
@@ -441,7 +379,7 @@ export default function Dashboard() {
             }
           </div>
 
-          {/* ── Big Calendar with daily PnL — moved to bottom ── */}
+          {/* ── Compact Calendar ─────────────────────────── */}
           <BigCalendar transactions={summary?.recent_transactions} balHidden={balHidden}/>
         </>
       )}
@@ -489,7 +427,7 @@ function SkeletonAll() {
       </div>
       <div className="skeleton" style={{height:"260px"}}/>
       <div className="skeleton" style={{height:"200px"}}/>
-      <div className="skeleton" style={{height:"380px"}}/>
+      <div className="skeleton" style={{height:"280px"}}/>
     </div>
   );
 }
